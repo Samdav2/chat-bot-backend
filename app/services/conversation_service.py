@@ -12,6 +12,7 @@ from app.repositories.message_repository import MessageRepository
 from app.services.state_manager import SessionStateManager
 from app.services.telegram_service import TelegramService
 from app.services.websocket_manager import ws_manager
+from app.services.ai_service import AIService
 
 logger = logging.getLogger("service.conversation")
 
@@ -24,6 +25,7 @@ class ConversationService:
         session: AsyncSession,
         state_manager: Optional[SessionStateManager] = None,
         telegram_service: Optional[TelegramService] = None,
+        ai_service: Optional[AIService] = None,
     ):
         self.session = session
         self.user_repo = UserRepository(session)
@@ -32,6 +34,7 @@ class ConversationService:
         self.msg_repo = MessageRepository(session)
         self.state_manager = state_manager or SessionStateManager()
         self.telegram_service = telegram_service or TelegramService()
+        self.ai_service = ai_service or AIService()
 
     async def escalate_to_human(
         self,
@@ -167,15 +170,26 @@ class ConversationService:
         username: Optional[str] = None,
         first_name: Optional[str] = None,
     ):
-        """Route customer Telegram text message depending on active Redis session state."""
-        current_state = await self.state_manager.get_user_state(telegram_id)
-        
+        """Route customer Telegram text message depending on active conversation state."""
         user = await self.user_repo.get_or_create_user(
             telegram_id=telegram_id, username=username, first_name=first_name
         )
         conversation = await self.conv_repo.get_active_by_user_id(user.id)
+        current_state = await self.state_manager.get_user_state(telegram_id)
 
-        if current_state == "HUMAN_ACTIVE" and conversation:
+        # DB conversation status is source of truth
+        if conversation and conversation.status == ConversationStatus.HUMAN_ACTIVE:
+            effective_state = "HUMAN_ACTIVE"
+        elif conversation and conversation.status == ConversationStatus.PENDING_AGENT:
+            effective_state = "PENDING_AGENT"
+        else:
+            effective_state = current_state or "BOT_ACTIVE"
+
+        if effective_state == "HUMAN_ACTIVE" and conversation:
+            # Sync Redis state if needed
+            if current_state != "HUMAN_ACTIVE":
+                await self.state_manager.set_user_state(telegram_id, "HUMAN_ACTIVE")
+
             # Save message to DB
             message = await self.msg_repo.add_message(
                 conversation_id=conversation.id,
@@ -188,23 +202,109 @@ class ConversationService:
             payload = {
                 "id": message.id,
                 "conversationId": conversation.id,
+                "conversation_id": conversation.id,
                 "senderRole": "USER",
+                "sender_role": "USER",
                 "senderId": telegram_id,
+                "sender_id": telegram_id,
                 "content": text,
                 "timestamp": message.created_at.isoformat(),
+                "created_at": message.created_at.isoformat(),
+            }
+            await ws_manager.broadcast_to_conversation(conversation.id, payload)
+            await ws_manager.publish_to_redis(conversation.id, payload)
+            return
+
+        elif effective_state == "PENDING_AGENT" and conversation:
+            # Sync Redis state if needed
+            if current_state != "PENDING_AGENT":
+                await self.state_manager.set_user_state(telegram_id, "PENDING_AGENT")
+
+            # Save incoming user message to DB as well so agent can read queue messages
+            message = await self.msg_repo.add_message(
+                conversation_id=conversation.id,
+                sender_role=SenderRole.USER,
+                sender_id=telegram_id,
+                content=text,
+            )
+
+            payload = {
+                "id": message.id,
+                "conversationId": conversation.id,
+                "conversation_id": conversation.id,
+                "senderRole": "USER",
+                "sender_role": "USER",
+                "senderId": telegram_id,
+                "sender_id": telegram_id,
+                "content": text,
+                "timestamp": message.created_at.isoformat(),
+                "created_at": message.created_at.isoformat(),
             }
             await ws_manager.broadcast_to_conversation(conversation.id, payload)
             await ws_manager.publish_to_redis(conversation.id, payload)
 
-        elif current_state == "PENDING_AGENT":
             await self.telegram_service.send_message(
                 chat_id=telegram_id,
                 text="⏳ You are still in queue. An agent will connect shortly. Thank you for your patience!",
             )
+            return
 
         else:
-            # BOT_ACTIVE default response
-            reply_text = f"🤖 **Bot Auto-Reply**: Thank you for your message! You said: _{text}_\n\nNeed human help? Click below or type /support."
+            # BOT_ACTIVE AI mode logic
+            if not conversation:
+                conversation = Conversation(
+                    user_id=user.id,
+                    status=ConversationStatus.BOT_ACTIVE,
+                )
+                conversation = await self.conv_repo.create(conversation)
+
+            # Save incoming user message to DB
+            user_msg = await self.msg_repo.add_message(
+                conversation_id=conversation.id,
+                sender_role=SenderRole.USER,
+                sender_id=telegram_id,
+                content=text,
+            )
+
+            # Broadcast user message to WS & Redis
+            user_payload = {
+                "id": user_msg.id,
+                "conversationId": conversation.id,
+                "conversation_id": conversation.id,
+                "senderRole": "USER",
+                "sender_role": "USER",
+                "senderId": telegram_id,
+                "sender_id": telegram_id,
+                "content": text,
+                "timestamp": user_msg.created_at.isoformat(),
+                "created_at": user_msg.created_at.isoformat(),
+            }
+            await ws_manager.broadcast_to_conversation(conversation.id, user_payload)
+            await ws_manager.publish_to_redis(conversation.id, user_payload)
+
+            # Fetch recent message history for AI context
+            history_msgs = await self.msg_repo.get_by_conversation_id(conversation.id)
+            formatted_history = []
+            for m in history_msgs[:-1]:  # exclude the current message we just added
+                formatted_history.append({
+                    "role": "assistant" if m.sender_role in [SenderRole.BOT, SenderRole.AGENT] else "user",
+                    "content": m.content,
+                })
+
+            # Generate AI response
+            reply_text = await self.ai_service.generate_response(
+                prompt=text, history=formatted_history
+            )
+
+            # Save AI response message to DB
+            bot_msg = await self.msg_repo.add_message(
+                conversation_id=conversation.id,
+                sender_role=SenderRole.BOT,
+                sender_id=0,
+                content=reply_text,
+            )
+
+            # Dispatch to Telegram with support keyboard
             keyboard = {
                 "inline_keyboard": [
                     [{"text": "👤 Speak to Support Agent", "callback_data": "request_support"}]
@@ -214,10 +314,30 @@ class ConversationService:
                 chat_id=telegram_id, text=reply_text, reply_markup=keyboard
             )
 
+            # Broadcast Bot response to WS & Redis
+            bot_payload = {
+                "id": bot_msg.id,
+                "conversationId": conversation.id,
+                "conversation_id": conversation.id,
+                "senderRole": "BOT",
+                "sender_role": "BOT",
+                "senderId": 0,
+                "sender_id": 0,
+                "content": reply_text,
+                "timestamp": bot_msg.created_at.isoformat(),
+                "created_at": bot_msg.created_at.isoformat(),
+            }
+            await ws_manager.broadcast_to_conversation(conversation.id, bot_payload)
+            await ws_manager.publish_to_redis(conversation.id, bot_payload)
+
     async def send_agent_message(
-        self, conversation_id: int, agent_id: int, content: str
+        self,
+        conversation_id: int,
+        agent_id: int,
+        content: str,
+        send_to_telegram: bool = True,
     ) -> Optional[Message]:
-        """Send message from support agent (Web Dashboard or Staff Group) to customer's Telegram chat."""
+        """Send message from support agent (Web Dashboard or Staff Group) to customer's chat."""
         conversation = await self.conv_repo.get_with_details(conversation_id)
         if not conversation or not conversation.user:
             return None
@@ -233,21 +353,28 @@ class ConversationService:
         )
 
         # 2. Dispatch to customer Telegram chat window
-        await self.telegram_service.send_message(
-            chat_id=telegram_id,
-            text=f"💬 **Agent Response:**\n{content}",
-        )
+        if send_to_telegram:
+            await self.telegram_service.send_message(
+                chat_id=telegram_id,
+                text=f"💬 **Agent Response:**\n{content}",
+            )
 
         # 3. Broadcast to all active WebSocket listeners
         payload = {
             "id": message.id,
             "conversationId": conversation_id,
+            "conversation_id": conversation_id,
             "senderRole": "AGENT",
+            "sender_role": "AGENT",
             "senderId": agent_id,
+            "sender_id": agent_id,
             "content": content,
             "timestamp": message.created_at.isoformat(),
+            "created_at": message.created_at.isoformat(),
         }
         await ws_manager.broadcast_to_conversation(conversation_id, payload)
         await ws_manager.publish_to_redis(conversation_id, payload)
 
         return message
+
+

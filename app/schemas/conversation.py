@@ -9,6 +9,9 @@ from app.schemas.agent import AgentReadSchema
 class MessageCreateSchema(BaseModel):
     content: str
     sender_role: SenderRole = SenderRole.AGENT
+    send_to_telegram: bool = True
+
+
 
 
 class MessageReadSchema(BaseModel):

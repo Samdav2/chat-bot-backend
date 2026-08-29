@@ -27,6 +27,8 @@ async def websocket_chat_endpoint(
             try:
                 payload = json.loads(data_text)
                 content = payload.get("content", "")
+                send_to_telegram = payload.get("send_to_telegram", True)
+
                 
                 if content:
                     # Open async DB session to store & dispatch message
@@ -36,6 +38,7 @@ async def websocket_chat_endpoint(
                             conversation_id=conversation_id,
                             agent_id=agent_id,
                             content=content,
+                            send_to_telegram=send_to_telegram,
                         )
             except Exception as ex:
                 logger.error(f"Error handling WebSocket message payload: {ex}")

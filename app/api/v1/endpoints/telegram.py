@@ -7,6 +7,8 @@ from app.services.conversation_service import ConversationService
 from app.services.telegram_service import TelegramService
 from app.services.state_manager import SessionStateManager
 
+from app.models.conversation import ConversationStatus
+
 router = APIRouter()
 logger = logging.getLogger("api.telegram_webhook")
 
@@ -99,11 +101,17 @@ async def handle_telegram_update(
     first_name = from_user.get("first_name")
     last_name = from_user.get("last_name")
 
+    # Check active conversation status in DB and Redis
+    user = await service.user_repo.get_by_telegram_id(chat_id)
+    active_conv = await service.conv_repo.get_active_by_user_id(user.id) if user else None
+    current_state = await state_manager.get_user_state(chat_id)
+    is_human_active = (active_conv and active_conv.status == ConversationStatus.HUMAN_ACTIVE) or current_state == "HUMAN_ACTIVE"
+
     # Command Trigger check for Escalation (/support, "talk to human", "agent", "human")
     normalized_text = text.strip().lower()
     escalation_triggers = ["/support", "talk to human", "agent", "human", "speak to agent", "help human"]
 
-    if any(trigger in normalized_text for trigger in escalation_triggers):
+    if not is_human_active and any(trigger in normalized_text for trigger in escalation_triggers):
         await service.escalate_to_human(
             telegram_id=chat_id,
             username=username,
@@ -122,3 +130,4 @@ async def handle_telegram_update(
     )
 
     return {"status": "ok"}
+

@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from app.core.config import settings
 
 
 @pytest.mark.asyncio
@@ -25,7 +26,7 @@ async def test_telegram_webhook_bot_reply(client: AsyncClient):
         }
     }
     
-    headers = {"X-Telegram-Bot-Api-Secret-Token": "dev_secret_token"}
+    headers = {"X-Telegram-Bot-Api-Secret-Token": settings.TELEGRAM_WEBHOOK_SECRET}
     response = await client.post("/api/v1/telegram/webhook", json=webhook_payload, headers=headers)
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -53,7 +54,8 @@ async def test_telegram_webhook_support_escalation(client: AsyncClient):
         }
     }
     
-    headers = {"X-Telegram-Bot-Api-Secret-Token": "dev_secret_token"}
+    headers = {"X-Telegram-Bot-Api-Secret-Token": settings.TELEGRAM_WEBHOOK_SECRET}
     response = await client.post("/api/v1/telegram/webhook", json=webhook_payload, headers=headers)
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+

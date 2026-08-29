@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # CORS origins
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
+    # AI Integration Settings
+    AI_PROVIDER: str = "auto"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+    AI_SYSTEM_PROMPT: str = "You are an intelligent customer support assistant. Answer the user's questions clearly, concisely, and politely."
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

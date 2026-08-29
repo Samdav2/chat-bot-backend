@@ -139,12 +139,13 @@ async def send_agent_message(
     session: AsyncSession = Depends(get_async_session),
     current_agent = Depends(get_current_agent),
 ) -> Any:
-    """Send message from support agent dashboard directly to user's Telegram chat window."""
+    """Send message from support agent dashboard directly to user's chat window."""
     service = ConversationService(session)
     message = await service.send_agent_message(
         conversation_id=id,
         agent_id=current_agent.id,
         content=message_in.content,
+        send_to_telegram=message_in.send_to_telegram,
     )
     
     if not message:
@@ -155,6 +156,7 @@ async def send_agent_message(
         
     return ResponseSchema(
         success=True,
-        message="Message dispatched to customer Telegram chat.",
+        message="Message dispatched to customer chat.",
         data=MessageReadSchema.model_validate(message),
     )
+
