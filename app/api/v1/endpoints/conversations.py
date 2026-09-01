@@ -92,7 +92,7 @@ async def claim_conversation(
         
     service = ConversationService(session)
     claimed_conv = await service.claim_conversation(
-        telegram_id=conversation.user.telegram_id,
+        conversation_id=id,
         agent_id=current_agent.id,
     )
     

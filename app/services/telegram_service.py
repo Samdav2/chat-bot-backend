@@ -91,3 +91,40 @@ class TelegramService:
             ]
         }
         return await self.send_message(staff_group_id, text, reply_markup=reply_markup)
+
+    async def send_new_message_alert(
+        self,
+        customer_id: int,
+        customer_name: str,
+        message_text: str,
+        recipient_chat_ids: Optional[list[int | str]] = None,
+    ) -> list[Optional[Dict[str, Any]]]:
+        """
+        Dispatch notification alert to admins via Telegram when a new customer sends a message to the AI Chatbot.
+        Sends to recipient admin Telegram chat IDs/handles and the Staff Group.
+        """
+        text = (
+            f"📩 **New Customer Message on Chatbot!**\n\n"
+            f"👤 **Customer Name:** {customer_name}\n"
+            f"🆔 **Customer ID:** `{customer_id}`\n"
+            f"💬 **Message:** _{message_text}_\n\n"
+            f"👉 *Check dashboard to review and reply!*"
+        )
+
+        targets = set()
+        if recipient_chat_ids:
+            for cid in recipient_chat_ids:
+                if cid:
+                    targets.add(cid)
+
+        # Always include STAFF_GROUP_ID if configured
+        if settings.STAFF_GROUP_ID:
+            targets.add(settings.STAFF_GROUP_ID)
+
+        results = []
+        for chat_id in targets:
+            res = await self.send_message(chat_id=chat_id, text=text)
+            results.append(res)
+
+        return results
+

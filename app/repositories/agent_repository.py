@@ -30,3 +30,43 @@ class AgentRepository(BaseRepository[Agent]):
             agent.is_online = is_online
             return await self.update(agent)
         return None
+
+    async def get_agents_with_telegram(self) -> Sequence[Agent]:
+        """Fetch all agents who have a configured telegram_chat_id or telegram_username."""
+        from sqlmodel import or_
+        statement = select(Agent).where(
+            or_(
+                Agent.telegram_chat_id.is_not(None),
+                Agent.telegram_username.is_not(None),
+            )
+        )
+        result = await self.session.exec(statement)
+        return result.all()
+
+    async def update_agent_profile(
+        self,
+        agent_id: int,
+        full_name: Optional[str] = None,
+        email: Optional[str] = None,
+        hashed_password: Optional[str] = None,
+        telegram_chat_id: Optional[str] = None,
+        telegram_username: Optional[str] = None,
+    ) -> Optional[Agent]:
+        """Update profile information for an agent."""
+        agent = await self.get_by_id(agent_id)
+        if not agent:
+            return None
+
+        if full_name is not None:
+            agent.full_name = full_name
+        if email is not None:
+            agent.email = email.lower()
+        if hashed_password is not None:
+            agent.hashed_password = hashed_password
+        if telegram_chat_id is not None:
+            agent.telegram_chat_id = telegram_chat_id
+        if telegram_username is not None:
+            agent.telegram_username = telegram_username
+
+        return await self.update(agent)
+

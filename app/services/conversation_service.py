@@ -93,17 +93,24 @@ class ConversationService:
         return conversation
 
     async def claim_conversation(
-        self, telegram_id: int, agent_id: int
+        self,
+        telegram_id: Optional[int] = None,
+        agent_id: int = 1,
+        conversation_id: Optional[int] = None,
     ) -> Optional[Conversation]:
-        """Claim ticket by Support Agent (via Telegram Staff Button or Dashboard API)."""
-        user = await self.user_repo.get_by_telegram_id(telegram_id)
-        if not user:
-            logger.warning(f"User not found for telegram_id {telegram_id}")
-            return None
+        """Claim ticket by Support Agent (via Telegram Staff Button or Dashboard API). Supports claiming BOT_ACTIVE conversations."""
+        conversation = None
+        if conversation_id:
+            conversation = await self.conv_repo.get_with_details(conversation_id)
+            if conversation and conversation.user:
+                telegram_id = conversation.user.telegram_id
+        elif telegram_id:
+            user = await self.user_repo.get_by_telegram_id(telegram_id)
+            if user:
+                conversation = await self.conv_repo.get_active_by_user_id(user.id)
 
-        conversation = await self.conv_repo.get_active_by_user_id(user.id)
-        if not conversation:
-            logger.warning(f"No active conversation found for user {user.id}")
+        if not conversation or not telegram_id:
+            logger.warning(f"No valid conversation found to claim (telegram_id: {telegram_id}, conversation_id: {conversation_id})")
             return None
 
         # Update Conversation status and assigned agent in DB
@@ -251,12 +258,18 @@ class ConversationService:
 
         else:
             # BOT_ACTIVE AI mode logic
+            is_new_conversation = False
             if not conversation:
                 conversation = Conversation(
                     user_id=user.id,
                     status=ConversationStatus.BOT_ACTIVE,
                 )
                 conversation = await self.conv_repo.create(conversation)
+                is_new_conversation = True
+
+            # Check existing message count prior to adding the new message
+            existing_messages = await self.msg_repo.get_by_conversation_id(conversation.id)
+            is_first_message = is_new_conversation or len(existing_messages) == 0
 
             # Save incoming user message to DB
             user_msg = await self.msg_repo.add_message(
@@ -281,6 +294,23 @@ class ConversationService:
             }
             await ws_manager.broadcast_to_conversation(conversation.id, user_payload)
             await ws_manager.publish_to_redis(conversation.id, user_payload)
+
+            # Notify admins on Telegram ONLY on the first message of a session
+            if is_first_message:
+                try:
+                    agents_with_tg = await self.agent_repo.get_agents_with_telegram()
+                    admin_chat_ids = [
+                        a.telegram_chat_id or a.telegram_username for a in agents_with_tg if (a.telegram_chat_id or a.telegram_username)
+                    ]
+                    customer_display_name = first_name or username or f"User {telegram_id}"
+                    await self.telegram_service.send_new_message_alert(
+                        customer_id=telegram_id,
+                        customer_name=customer_display_name,
+                        message_text=text,
+                        recipient_chat_ids=admin_chat_ids,
+                    )
+                except Exception as e:
+                    logger.error(f"Error notifying admins on Telegram: {e}")
 
             # Fetch recent message history for AI context
             history_msgs = await self.msg_repo.get_by_conversation_id(conversation.id)
@@ -343,6 +373,12 @@ class ConversationService:
             return None
 
         telegram_id = conversation.user.telegram_id
+
+        # Auto-claim conversation and transition state to HUMAN_ACTIVE if not already active
+        if conversation.status != ConversationStatus.HUMAN_ACTIVE or conversation.assigned_agent_id != agent_id:
+            await self.conv_repo.assign_agent(conversation_id, agent_id)
+            await self.state_manager.set_user_state(telegram_id, "HUMAN_ACTIVE")
+            await self.state_manager.assign_agent(telegram_id, agent_id)
 
         # 1. Save agent message to DB
         message = await self.msg_repo.add_message(

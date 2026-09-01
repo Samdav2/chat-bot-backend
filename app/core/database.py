@@ -31,6 +31,13 @@ async def init_db() -> None:
     """Initialize database tables asynchronously."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        # Ensure new columns exist on agents table if migrating existing DB
+        from sqlalchemy import text
+        for col_name in ["telegram_chat_id", "telegram_username"]:
+            try:
+                await conn.execute(text(f"ALTER TABLE agents ADD COLUMN {col_name} VARCHAR(255)"))
+            except Exception:
+                pass  # Column already exists
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:

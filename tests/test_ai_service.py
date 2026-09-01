@@ -21,7 +21,17 @@ async def test_ai_service_fallback():
     ai = AIService(openai_api_key="", gemini_api_key="", provider="auto")
     resp = await ai.generate_response("Hello there!")
     assert "🤖" in resp
-    assert "AI assistant" in resp
+    assert "SMS & OTP Verification Service" in resp
+
+    otp_resp = await ai.generate_response("where is my otp code?")
+    assert "1-3 minutes" in otp_resp
+    assert "Cancel" in otp_resp
+
+    buy_resp = await ai.generate_response("how do I buy a number?")
+    assert "How to Buy a Number" in buy_resp
+
+    refund_resp = await ai.generate_response("what is the refund policy?")
+    assert "only charged if an SMS code is successfully received" in refund_resp
 
 
 @pytest.mark.asyncio
@@ -31,12 +41,18 @@ async def test_bot_mode_ai_response_routing(db_session: AsyncSession):
     service = ConversationService(session=db_session, telegram_service=mock_tg, ai_service=ai)
 
     telegram_id = 999111222
+    # Message 1 (Session start): Triggers admin alert (1) + AI response (2) = 2 messages
     await service.route_user_message(telegram_id=telegram_id, text="What are your hours?")
+    assert len(mock_tg.sent_messages) == 2
+    assert "New Customer Message on Chatbot" in mock_tg.sent_messages[0]["text"]
+    assert "24/7" in mock_tg.sent_messages[1]["text"]
 
-    # Verify AI bot message sent to Telegram
+    # Message 2 (Subsequent message in same session): Should ONLY trigger AI response (1 new message), NOT admin alert!
+    mock_tg.sent_messages.clear()
+    await service.route_user_message(telegram_id=telegram_id, text="Where is my OTP code?")
     assert len(mock_tg.sent_messages) == 1
-    assert "24/7" in mock_tg.sent_messages[0]["text"]
-    assert mock_tg.sent_messages[0]["reply_markup"] is not None
+    assert "1-3 minutes" in mock_tg.sent_messages[0]["text"]
+    assert "New Customer Message" not in mock_tg.sent_messages[0]["text"]
 
 
 @pytest.mark.asyncio
@@ -99,4 +115,30 @@ async def test_human_active_suppresses_bot_and_ai_replies(db_session: AsyncSessi
     await service.route_user_message(telegram_id=telegram_id, text="I have a question about my order")
 
     # Verify NO bot or AI auto-reply was sent to Telegram!
+    assert len(mock_tg.sent_messages) == 0
+
+
+@pytest.mark.asyncio
+async def test_claim_bot_active_conversation_and_auto_claim_on_message(db_session: AsyncSession):
+    mock_tg = MockTelegramService()
+    ai = AIService(openai_api_key="", gemini_api_key="", provider="auto")
+    service = ConversationService(session=db_session, telegram_service=mock_tg, ai_service=ai)
+
+    telegram_id = 444333222
+    # 1. User starts chat with AI (status: BOT_ACTIVE, user has NOT requested human support)
+    await service.route_user_message(telegram_id=telegram_id, text="Hello, how do I buy a number?")
+
+    user = await service.user_repo.get_by_telegram_id(telegram_id)
+    conv = await service.conv_repo.get_active_by_user_id(user.id)
+    assert conv.status.value == "BOT_ACTIVE"
+
+    # 2. Admin claims the conversation directly via conversation_id even though user didn't request support
+    claimed_conv = await service.claim_conversation(conversation_id=conv.id, agent_id=1)
+    assert claimed_conv is not None
+    assert claimed_conv.status.value == "HUMAN_ACTIVE"
+    assert claimed_conv.assigned_agent_id == 1
+
+    # 3. Subsequent user message goes to human queue, bot does NOT auto-reply
+    mock_tg.sent_messages.clear()
+    await service.route_user_message(telegram_id=telegram_id, text="Is anyone there?")
     assert len(mock_tg.sent_messages) == 0

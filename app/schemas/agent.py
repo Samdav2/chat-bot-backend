@@ -12,6 +12,16 @@ class AgentCreateSchema(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    telegram_chat_id: Optional[str] = None
+    telegram_username: Optional[str] = None
+
+
+class AgentUpdateSchema(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+    telegram_username: Optional[str] = None
 
 
 class AgentReadSchema(BaseModel):
@@ -19,6 +29,8 @@ class AgentReadSchema(BaseModel):
     email: EmailStr
     full_name: str
     is_online: bool
+    telegram_chat_id: Optional[str] = None
+    telegram_username: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

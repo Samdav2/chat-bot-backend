@@ -49,3 +49,51 @@ async def test_user_and_conversation_repositories(db_session: AsyncSession):
     conv_details = await conv_repo.get_with_details(conv.id)
     assert conv_details is not None
     assert conv_details.user.username == "johndoe"
+
+
+@pytest.mark.asyncio
+async def test_claim_and_close_bot_active_conversation(db_session: AsyncSession):
+    """Test claiming and closing a BOT_ACTIVE conversation via ConversationService."""
+    from unittest.mock import AsyncMock
+    from app.services.conversation_service import ConversationService
+    from app.models.conversation import Conversation
+
+    user_repo = UserRepository(db_session)
+    conv_repo = ConversationRepository(db_session)
+
+    # 1. Create User and BOT_ACTIVE Conversation
+    user = await user_repo.get_or_create_user(
+        telegram_id=87654321,
+        username="botuser",
+        first_name="Bot",
+        last_name="User",
+    )
+    bot_conv = Conversation(
+        user_id=user.id,
+        status=ConversationStatus.BOT_ACTIVE,
+    )
+    bot_conv = await conv_repo.create(bot_conv)
+    assert bot_conv.status == ConversationStatus.BOT_ACTIVE
+
+    # 2. Mock state manager and telegram service
+    state_manager = AsyncMock()
+    telegram_service = AsyncMock()
+    service = ConversationService(
+        session=db_session,
+        state_manager=state_manager,
+        telegram_service=telegram_service,
+    )
+
+    # 3. Claim BOT_ACTIVE conversation
+    claimed = await service.claim_conversation(conversation_id=bot_conv.id, agent_id=1)
+    assert claimed is not None
+    assert claimed.status == ConversationStatus.HUMAN_ACTIVE
+    assert claimed.assigned_agent_id == 1
+    state_manager.set_user_state.assert_called_with(87654321, "HUMAN_ACTIVE")
+
+    # 4. Close conversation
+    closed = await service.close_conversation(conversation_id=bot_conv.id, agent_id=1)
+    assert closed is not None
+    assert closed.status == ConversationStatus.CLOSED
+    state_manager.clear_session.assert_called_with(87654321)
+

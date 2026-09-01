@@ -114,16 +114,70 @@ class AIService:
         return None
 
     def _generate_fallback(self, prompt: str) -> str:
-        """Intelligent conversational fallback engine when external API keys are unavailable."""
+        """Master offline response engine for OTP & SMS verification queries when external AI APIs are unavailable."""
         lower_prompt = prompt.lower().strip()
 
-        if any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings"]):
-            return "🤖 Hello! I am your AI assistant. How can I help you today? If you'd like to talk to a human agent, click below or type /support."
-        elif any(word in lower_prompt for word in ["price", "pricing", "cost", "fee"]):
-            return "🤖 Our services are competitively priced. For detailed pricing inquiries or custom plans, feel free to reach out to a support agent using the button below!"
-        elif any(word in lower_prompt for word in ["hours", "open", "time", "schedule"]):
-            return "🤖 Our support team is available 24/7 to assist you. Let us know how we can help!"
-        elif any(word in lower_prompt for word in ["thank", "thanks"]):
-            return "🤖 You're very welcome! Is there anything else I can assist you with?"
+        # Greetings
+        if any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings", "start"]):
+            return (
+                "🤖 Hello! Welcome to our SMS & OTP Verification Service. "
+                "How can I assist you today? You can ask about buying numbers, OTP delays, pricing, or refunds."
+            )
+
+        # OTP Delivery / Delayed Code / Code not coming
+        elif any(phrase in lower_prompt for phrase in ["otp", "code", "sms", "not receive", "delay", "waiting", "didn't get", "haven't got", "where is"]):
+            return (
+                "🤖 **OTP Delivery Info:** SMS codes usually arrive within 1-3 minutes. "
+                "If your code has not arrived after 3 minutes, please click **Cancel** on your dashboard number order. "
+                "Your balance will be instantly refunded 100%, and you can try purchasing another number or selecting a different country/server."
+            )
+
+        # Refund / Balance / Billing / Charged
+        elif any(word in lower_prompt for word in ["refund", "balance", "money", "charged", "credit", "cost", "free"]):
+            return (
+                "🤖 **Billing & Refund Policy:** You are **only charged if an SMS code is successfully received**! "
+                "If you cancel an unused number or if the timer expires without receiving an OTP, your money is automatically credited back to your account balance immediately."
+            )
+
+        # Buying / Purchasing numbers / How to use
+        elif any(word in lower_prompt for word in ["buy", "purchase", "number", "how to", "get number", "service", "country"]):
+            return (
+                "🤖 **How to Buy a Number:**\n"
+                "1. Go to the main dashboard.\n"
+                "2. Select your target service (e.g. WhatsApp, Telegram, Google, Tinder, etc.) and country.\n"
+                "3. Click **Buy Number**.\n"
+                "4. Copy the virtual number into your app/website and request the OTP!"
+            )
+
+        # Banned or Invalid Number
+        elif any(word in lower_prompt for word in ["banned", "invalid", "blocked", "used", "error"]):
+            return (
+                "🤖 **Invalid / Banned Number:** If the service indicates the number is already registered or banned, "
+                "simply click **Cancel** on your order tab immediately to get a full refund, then purchase a fresh number."
+            )
+
+        # Pricing & Rates
+        elif any(word in lower_prompt for word in ["price", "pricing", "rate", "fee"]):
+            return (
+                "🤖 **Pricing Details:** Rates vary depending on the chosen service and country. "
+                "You can view live prices per SMS directly on the dashboard service selection menu."
+            )
+
+        # Hours / Support
+        elif any(word in lower_prompt for word in ["hours", "support", "human", "agent", "person", "real"]):
+            return (
+                "🤖 Our live support team is available 24/7! "
+                "To speak directly with a support agent, click the **'Speak to Support Agent'** button or type `/support`."
+            )
+
+        # Gratitude
+        elif any(word in lower_prompt for word in ["thank", "thanks", "ok", "okay", "great"]):
+            return "🤖 You're very welcome! Let me know if you have any other questions regarding your OTP orders."
+
+        # General Fallback
         else:
-            return f"🤖 Thank you for your inquiry regarding: '{prompt}'. As an AI assistant, I'm here to help. If you need dedicated human support, please click 'Speak to Support Agent' or type /support."
+            return (
+                f"🤖 Thank you for your inquiry: '{prompt}'. "
+                "As an SMS Support Assistant, I am here to help with your OTP orders, numbers, and balance. "
+                "If you need dedicated live agent assistance, please click **'Speak to Support Agent'** or type `/support`."
+            )

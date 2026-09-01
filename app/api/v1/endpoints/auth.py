@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
 from app.repositories.agent_repository import AgentRepository
-from app.schemas.agent import AgentLoginSchema, AgentCreateSchema, AgentReadSchema, TokenSchema
+from app.schemas.agent import AgentLoginSchema, AgentCreateSchema, AgentUpdateSchema, AgentReadSchema, TokenSchema
 from app.schemas.common import ResponseSchema
 
 router = APIRouter()
@@ -82,6 +82,8 @@ async def register_agent(
         email=agent_in.email.lower(),
         hashed_password=hashed_pwd,
         full_name=agent_in.full_name,
+        telegram_chat_id=agent_in.telegram_chat_id,
+        telegram_username=agent_in.telegram_username,
         is_online=False
     )
     created_agent = await agent_repo.create(new_agent)
@@ -102,3 +104,30 @@ async def get_agent_profile(
         message="Agent profile retrieved successfully",
         data=current_agent
     )
+
+
+@router.put("/me", response_model=ResponseSchema[AgentReadSchema])
+async def update_agent_profile(
+    profile_in: AgentUpdateSchema,
+    current_agent = Depends(get_current_agent),
+    session: AsyncSession = Depends(get_async_session)
+) -> Any:
+    """Update logged-in support agent profile details including Telegram handle and chat ID."""
+    agent_repo = AgentRepository(session)
+    hashed_pwd = get_password_hash(profile_in.password) if profile_in.password else None
+
+    updated_agent = await agent_repo.update_agent_profile(
+        agent_id=current_agent.id,
+        full_name=profile_in.full_name,
+        email=profile_in.email,
+        hashed_password=hashed_pwd,
+        telegram_chat_id=profile_in.telegram_chat_id,
+        telegram_username=profile_in.telegram_username,
+    )
+
+    return ResponseSchema(
+        success=True,
+        message="Agent profile updated successfully",
+        data=updated_agent
+    )
+

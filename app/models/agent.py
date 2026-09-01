@@ -14,6 +14,8 @@ class Agent(SQLModel, table=True):
     hashed_password: str = Field(nullable=False, max_length=255)
     full_name: str = Field(nullable=False, max_length=255)
     is_online: bool = Field(default=False, nullable=False)
+    telegram_chat_id: Optional[str] = Field(default=None, nullable=True, max_length=255)
+    telegram_username: Optional[str] = Field(default=None, nullable=True, max_length=255)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False
