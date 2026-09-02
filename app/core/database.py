@@ -43,14 +43,24 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-    # 2. Ensure new columns exist on agents table for legacy DB migrations
+    # 2. Ensure new columns exist on agents and messages tables for legacy DB migrations
     async with engine.begin() as conn:
         from sqlalchemy import text
+        is_sqlite = db_url.startswith("sqlite")
+
         for col_name in ["telegram_chat_id", "telegram_username"]:
             try:
-                await conn.execute(text(f"ALTER TABLE agents ADD COLUMN IF NOT EXISTS {col_name} VARCHAR(255)"))
+                sql = f"ALTER TABLE agents ADD COLUMN {col_name} VARCHAR(255)" if is_sqlite else f"ALTER TABLE agents ADD COLUMN IF NOT EXISTS {col_name} VARCHAR(255)"
+                await conn.execute(text(sql))
             except Exception:
-                pass  # Column already exists or dialect does not support IF NOT EXISTS
+                pass  # Column already exists or dialect error
+
+        for col_name, col_type in [("media_url", "TEXT"), ("media_type", "VARCHAR(255)")]:
+            try:
+                sql = f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}" if is_sqlite else f"ALTER TABLE messages ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                await conn.execute(text(sql))
+            except Exception:
+                pass  # Column already exists or dialect error
 
     # 3. Ensure telegram_id and sender_id are BIGINT to support 64-bit Telegram IDs
     async with engine.begin() as conn:
