@@ -129,6 +129,19 @@ async def handle_telegram_update(
     first_name = from_user.get("first_name")
     last_name = from_user.get("last_name")
 
+    media_url = None
+    media_type = None
+
+    # Handle incoming photos sent by Telegram user
+    if "photo" in message and isinstance(message["photo"], list) and len(message["photo"]) > 0:
+        photo_info = message["photo"][-1]  # Highest resolution photo
+        file_id = photo_info.get("file_id")
+        if file_id:
+            media_url = await telegram_service.download_telegram_photo(file_id)
+            media_type = "image"
+            if not text:
+                text = message.get("caption", "") or "[Image Attachment]"
+
     # Check active conversation status in DB and Redis
     user = await service.user_repo.get_by_telegram_id(chat_id)
     active_conv = await service.conv_repo.get_active_by_user_id(user.id) if user else None
@@ -168,6 +181,8 @@ async def handle_telegram_update(
         text=text,
         username=username,
         first_name=first_name,
+        media_url=media_url,
+        media_type=media_type,
     )
 
     return {"status": "ok"}

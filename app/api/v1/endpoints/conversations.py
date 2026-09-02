@@ -1,5 +1,8 @@
+import os
+import time
+import uuid
 from typing import Any, Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
 from app.models.conversation import ConversationStatus
@@ -16,6 +19,35 @@ from app.schemas.common import ResponseSchema
 from app.api.v1.endpoints.auth import get_current_agent
 
 router = APIRouter()
+
+
+@router.post("/upload-media", response_model=ResponseSchema[dict])
+async def upload_media(
+    file: UploadFile = File(...),
+    current_agent = Depends(get_current_agent),
+) -> Any:
+    """Upload an image file for support agent chat message."""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed."
+        )
+    
+    os.makedirs("public/uploads", exist_ok=True)
+    ext = os.path.splitext(file.filename or "image.jpg")[1] or ".jpg"
+    filename = f"agent_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+    filepath = os.path.join("public", "uploads", filename)
+    
+    contents = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(contents)
+        
+    media_url = f"/uploads/{filename}"
+    return ResponseSchema(
+        success=True,
+        message="Media uploaded successfully.",
+        data={"media_url": media_url, "media_type": "image"},
+    )
 
 
 @router.get("", response_model=ResponseSchema[List[ConversationReadSchema]])
@@ -145,6 +177,8 @@ async def send_agent_message(
         conversation_id=id,
         agent_id=current_agent.id,
         content=message_in.content,
+        media_url=message_in.media_url,
+        media_type=message_in.media_type,
         send_to_telegram=message_in.send_to_telegram,
     )
     

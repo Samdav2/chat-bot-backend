@@ -24,6 +24,8 @@ class Message(SQLModel, table=True):
     sender_role: SenderRole = Field(nullable=False)
     sender_id: int = Field(sa_column=Column(BigInteger, nullable=False))  # telegram_id or agent_id
     content: str = Field(nullable=False)
+    media_url: Optional[str] = Field(default=None, nullable=True)
+    media_type: Optional[str] = Field(default=None, nullable=True)
     created_at: datetime = Field(
         default_factory=utc_now,
         nullable=False

@@ -7,11 +7,11 @@ from app.schemas.agent import AgentReadSchema
 
 
 class MessageCreateSchema(BaseModel):
-    content: str
+    content: str = ""
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
     sender_role: SenderRole = SenderRole.AGENT
     send_to_telegram: bool = True
-
-
 
 
 class MessageReadSchema(BaseModel):
@@ -20,6 +20,8 @@ class MessageReadSchema(BaseModel):
     sender_role: SenderRole
     sender_id: int
     content: str
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

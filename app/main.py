@@ -1,6 +1,8 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import init_db, async_session_maker
 from app.core.redis import RedisClient
@@ -40,6 +42,7 @@ async def seed_initial_data():
 async def lifespan(app: FastAPI):
     """Application lifespan manager for startup database initialization and shutdown cleanup."""
     logger.info("Starting up FastAPI application...")
+    os.makedirs("public/uploads", exist_ok=True)
     # Initialize DB tables asynchronously
     await init_db()
     await seed_initial_data()
@@ -61,6 +64,10 @@ def create_application() -> FastAPI:
     setup_cors(app)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(TelegramAuthMiddleware)
+
+    # Mount static uploads directory
+    os.makedirs("public/uploads", exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory="public/uploads"), name="uploads")
 
     # Mount API Routers
     app.include_router(api_v1_router, prefix=settings.API_V1_STR)

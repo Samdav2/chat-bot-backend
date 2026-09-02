@@ -177,6 +177,8 @@ class ConversationService:
         text: str,
         username: Optional[str] = None,
         first_name: Optional[str] = None,
+        media_url: Optional[str] = None,
+        media_type: Optional[str] = None,
     ):
         """Route customer Telegram text message depending on active conversation state."""
         user = await self.user_repo.get_or_create_user(
@@ -204,6 +206,8 @@ class ConversationService:
                 sender_role=SenderRole.USER,
                 sender_id=telegram_id,
                 content=text,
+                media_url=media_url,
+                media_type=media_type,
             )
 
             # Broadcast to dashboard agent WebSocket & Redis
@@ -216,6 +220,10 @@ class ConversationService:
                 "senderId": telegram_id,
                 "sender_id": telegram_id,
                 "content": text,
+                "mediaUrl": media_url,
+                "media_url": media_url,
+                "mediaType": media_type,
+                "media_type": media_type,
                 "timestamp": message.created_at.isoformat(),
                 "created_at": message.created_at.isoformat(),
             }
@@ -234,6 +242,8 @@ class ConversationService:
                 sender_role=SenderRole.USER,
                 sender_id=telegram_id,
                 content=text,
+                media_url=media_url,
+                media_type=media_type,
             )
 
             payload = {
@@ -245,6 +255,10 @@ class ConversationService:
                 "senderId": telegram_id,
                 "sender_id": telegram_id,
                 "content": text,
+                "mediaUrl": media_url,
+                "media_url": media_url,
+                "mediaType": media_type,
+                "media_type": media_type,
                 "timestamp": message.created_at.isoformat(),
                 "created_at": message.created_at.isoformat(),
             }
@@ -278,6 +292,8 @@ class ConversationService:
                 sender_role=SenderRole.USER,
                 sender_id=telegram_id,
                 content=text,
+                media_url=media_url,
+                media_type=media_type,
             )
 
             # Broadcast user message to WS & Redis
@@ -290,6 +306,10 @@ class ConversationService:
                 "senderId": telegram_id,
                 "sender_id": telegram_id,
                 "content": text,
+                "mediaUrl": media_url,
+                "media_url": media_url,
+                "mediaType": media_type,
+                "media_type": media_type,
                 "timestamp": user_msg.created_at.isoformat(),
                 "created_at": user_msg.created_at.isoformat(),
             }
@@ -362,6 +382,8 @@ class ConversationService:
         conversation_id: int,
         agent_id: int,
         content: str,
+        media_url: Optional[str] = None,
+        media_type: Optional[str] = None,
         send_to_telegram: bool = True,
     ) -> Optional[Message]:
         """Send message from support agent (Web Dashboard or Staff Group) to customer's chat."""
@@ -383,14 +405,24 @@ class ConversationService:
             sender_role=SenderRole.AGENT,
             sender_id=agent_id,
             content=content,
+            media_url=media_url,
+            media_type=media_type,
         )
 
         # 2. Dispatch to customer Telegram chat window
         if send_to_telegram:
-            await self.telegram_service.send_message(
-                chat_id=telegram_id,
-                text=f"💬 **Agent Response:**\n{content}",
-            )
+            if media_url:
+                caption = f"💬 **Agent Response:**\n{content}" if content else "💬 **Agent Response**"
+                await self.telegram_service.send_photo(
+                    chat_id=telegram_id,
+                    photo_url_or_path=media_url,
+                    caption=caption,
+                )
+            else:
+                await self.telegram_service.send_message(
+                    chat_id=telegram_id,
+                    text=f"💬 **Agent Response:**\n{content}",
+                )
 
         # 3. Broadcast to all active WebSocket listeners
         payload = {
@@ -402,6 +434,10 @@ class ConversationService:
             "senderId": agent_id,
             "sender_id": agent_id,
             "content": content,
+            "mediaUrl": media_url,
+            "media_url": media_url,
+            "mediaType": media_type,
+            "media_type": media_type,
             "timestamp": message.created_at.isoformat(),
             "created_at": message.created_at.isoformat(),
         }

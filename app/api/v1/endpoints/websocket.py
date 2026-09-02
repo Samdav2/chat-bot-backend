@@ -27,10 +27,11 @@ async def websocket_chat_endpoint(
             try:
                 payload = json.loads(data_text)
                 content = payload.get("content", "")
+                media_url = payload.get("media_url") or payload.get("mediaUrl")
+                media_type = payload.get("media_type") or payload.get("mediaType")
                 send_to_telegram = payload.get("send_to_telegram", True)
 
-                
-                if content:
+                if content or media_url:
                     # Open async DB session to store & dispatch message
                     async with async_session_maker() as session:
                         service = ConversationService(session)
@@ -38,6 +39,8 @@ async def websocket_chat_endpoint(
                             conversation_id=conversation_id,
                             agent_id=agent_id,
                             content=content,
+                            media_url=media_url,
+                            media_type=media_type,
                             send_to_telegram=send_to_telegram,
                         )
             except Exception as ex:

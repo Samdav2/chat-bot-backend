@@ -41,6 +41,8 @@ class MessageRepository(BaseRepository[Message]):
         sender_role: SenderRole,
         sender_id: int,
         content: str,
+        media_url: Optional[str] = None,
+        media_type: Optional[str] = None,
     ) -> Message:
         """Create and store a chat message entry."""
         message = Message(
@@ -48,5 +50,7 @@ class MessageRepository(BaseRepository[Message]):
             sender_role=sender_role,
             sender_id=sender_id,
             content=content,
+            media_url=media_url,
+            media_type=media_type,
         )
         return await self.create(message)
