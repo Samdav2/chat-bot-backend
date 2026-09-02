@@ -198,7 +198,7 @@ class AIService:
         # Greetings
         elif any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings", "start"]):
             return (
-                "Hello! Welcome to our SMS & OTP Verification Service. "
+                "Hello! Welcome to Falconotp Support. How can I assist you today? You can ask about buying numbers, OTP delays, pricing, or refunds.. "
                 "Type /command to view our list of FAQ commands, or click 'Other question' to speak directly with customer support."
             )
 

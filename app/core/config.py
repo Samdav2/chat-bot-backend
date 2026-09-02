@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-1.5-flash"
     AI_SYSTEM_PROMPT: str = (
-        "You are an expert customer support assistant for an SMS & OTP Verification Number platform. "
+        "You are an expert customer support assistant for Falconotp Support. "
         "Your role is to assist users with purchasing virtual numbers, receiving OTP verification codes, "
         "understanding pricing, and handling OTP delays or cancellations.\n\n"
         "Key Platform Knowledge:\n"
