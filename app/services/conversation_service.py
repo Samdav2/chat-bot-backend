@@ -81,7 +81,7 @@ class ConversationService:
         # 5. Notify customer & Send Telegram Staff Alert
         await self.telegram_service.send_message(
             chat_id=telegram_id,
-            text="⚠️ **Support Requested**: You have been placed in line for a human support agent. An agent will be with you shortly!",
+            text="**Support Requested**: You have been placed in line for a human support agent. An agent will be with you shortly!",
         )
         
         display_name = first_name or username or f"User {telegram_id}"
@@ -128,7 +128,7 @@ class ConversationService:
         # Notify Customer on Telegram
         await self.telegram_service.send_message(
             chat_id=telegram_id,
-            text=f"👨‍💻 **Agent Connected**: You are now speaking directly with **{agent_name}**. How can we help you today?",
+            text=f"**Agent Connected**: You are now speaking directly with **{agent_name}**. How can we help you today?",
         )
 
         return conversation
@@ -155,17 +155,17 @@ class ConversationService:
         rating_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "⭐ 1", "callback_data": "rate_1"},
-                    {"text": "⭐ 2", "callback_data": "rate_2"},
-                    {"text": "⭐ 3", "callback_data": "rate_3"},
-                    {"text": "⭐ 4", "callback_data": "rate_4"},
-                    {"text": "⭐ 5", "callback_data": "rate_5"},
+                    {"text": "1", "callback_data": "rate_1"},
+                    {"text": "2", "callback_data": "rate_2"},
+                    {"text": "3", "callback_data": "rate_3"},
+                    {"text": "4", "callback_data": "rate_4"},
+                    {"text": "5", "callback_data": "rate_5"},
                 ]
             ]
         }
         await self.telegram_service.send_message(
             chat_id=telegram_id,
-            text="✅ **Chat Resolved**: Your support ticket has been closed. Please rate your support experience below:",
+            text="**Chat Resolved**: Your support ticket has been closed. Please rate your support experience below:",
             reply_markup=rating_markup,
         )
 
@@ -412,7 +412,7 @@ class ConversationService:
         # 2. Dispatch to customer Telegram chat window
         if send_to_telegram:
             if media_url:
-                caption = f"💬 **Agent Response:**\n{content}" if content else "💬 **Agent Response**"
+                caption = f"**Agent Response:**\n{content}" if content else "**Agent Response**"
                 await self.telegram_service.send_photo(
                     chat_id=telegram_id,
                     photo_url_or_path=media_url,
@@ -421,7 +421,7 @@ class ConversationService:
             else:
                 await self.telegram_service.send_message(
                     chat_id=telegram_id,
-                    text=f"💬 **Agent Response:**\n{content}",
+                    text=f"**Agent Response:**\n{content}",
                 )
 
         # 3. Broadcast to all active WebSocket listeners

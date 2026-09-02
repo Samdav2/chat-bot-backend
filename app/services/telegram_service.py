@@ -162,17 +162,17 @@ class TelegramService:
         """Dispatch staff notification alert to the Telegram Staff Group with a [Claim Ticket] inline button."""
         staff_group_id = settings.STAFF_GROUP_ID
         text = (
-            f"🚨 **New Customer Support Escalation!**\n\n"
-            f"👤 **Customer:** {customer_name}\n"
-            f"🆔 **Telegram ID:** `{customer_id}`\n"
-            f"💬 **Message:** _{initial_text}_\n\n"
+            f"**New Customer Support Escalation!**\n\n"
+            f"**Customer:** {customer_name}\n"
+            f"**Telegram ID:** `{customer_id}`\n"
+            f"**Message:** _{initial_text}_\n\n"
             f"Click below to claim this support request!"
         )
         reply_markup = {
             "inline_keyboard": [
                 [
                     {
-                        "text": "✅ Claim Ticket",
+                        "text": "Claim Ticket",
                         "callback_data": f"claim_{customer_id}",
                     }
                 ]
@@ -192,11 +192,11 @@ class TelegramService:
         Sends to recipient admin Telegram chat IDs/handles and the Staff Group.
         """
         text = (
-            f"📩 **New Customer Message on Chatbot!**\n\n"
-            f"👤 **Customer Name:** {customer_name}\n"
-            f"🆔 **Customer ID:** `{customer_id}`\n"
-            f"💬 **Message:** _{message_text}_\n\n"
-            f"👉 *Check dashboard to review and reply!*"
+            f"**New Customer Message on Chatbot!**\n\n"
+            f"**Customer Name:** {customer_name}\n"
+            f"**Customer ID:** `{customer_id}`\n"
+            f"**Message:** _{message_text}_\n\n"
+            f"*Check dashboard to review and reply!*"
         )
 
         targets = set()

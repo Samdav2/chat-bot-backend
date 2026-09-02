@@ -20,7 +20,6 @@ class MockTelegramService(TelegramService):
 async def test_ai_service_fallback():
     ai = AIService(openai_api_key="", gemini_api_key="", provider="auto")
     resp = await ai.generate_response("Hello there!")
-    assert "🤖" in resp
     assert "SMS & OTP Verification Service" in resp
 
     otp_resp = await ai.generate_response("where is my otp code?")

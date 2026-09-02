@@ -182,7 +182,7 @@ class AIService:
         # Buying / Purchasing numbers
         elif any(word in lower_prompt for word in ["buy", "purchase", "how to buy"]):
             return (
-                "🤖 **How to Buy a Number:**\n"
+                "**How to Buy a Number:**\n"
                 "1. Go to the main dashboard.\n"
                 "2. Select your target service (e.g. WhatsApp, Telegram, Google, etc.) and country.\n"
                 "3. Click **Buy Number**."
@@ -191,24 +191,24 @@ class AIService:
         # Hours / Live Support
         elif any(word in lower_prompt for word in ["hours", "support", "human", "agent", "person", "real"]):
             return (
-                "🤖 Our live support team is available 24/7! "
-                "To speak directly with a support agent, click **❓ Other question** or type `/support`."
+                "Our live support team is available 24/7! "
+                "To speak directly with a support agent, click **Other question** or type `/support`."
             )
 
         # Greetings
         elif any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings", "start"]):
             return (
-                "🤖 Hello! Welcome to our SMS & OTP Verification Service. "
+                "Hello! Welcome to our SMS & OTP Verification Service. "
                 "Type /command to view our list of FAQ commands, or click 'Other question' to speak directly with customer support."
             )
 
         # Gratitude
         elif any(word in lower_prompt for word in ["thank", "thanks", "ok", "okay", "great"]):
-            return "🤖 You're very welcome! Let me know if you have any other questions regarding your OTP orders."
+            return "You're very welcome! Let me know if you have any other questions regarding your OTP orders."
 
         # General Fallback
         else:
             return (
-                f"🤖 Thank you for your inquiry: '{prompt}'. "
-                "Type /command to see all FAQ options, or click **❓ Other question** to speak directly with customer support."
+                f"Thank you for your inquiry: '{prompt}'. "
+                "Type /command to see all FAQ options, or click **Other question** to speak directly with customer support."
             )

@@ -52,13 +52,13 @@ async def handle_telegram_update(
                 current_state = await state_manager.get_user_state(target_chat_id)
                 if current_state == "HUMAN_ACTIVE":
                     await telegram_service.answer_callback_query(
-                        cb_id, text="⚠️ Ticket has already been claimed by another agent!", show_alert=True
+                        cb_id, text="Ticket has already been claimed by another agent!", show_alert=True
                     )
                 else:
                     # Note: Using default fallback staff agent ID 1 if claimed from Telegram
                     await service.claim_conversation(telegram_id=target_chat_id, agent_id=1)
                     await telegram_service.answer_callback_query(
-                        cb_id, text=f"✅ You have claimed ticket for customer {target_chat_id}!"
+                        cb_id, text=f"You have claimed ticket for customer {target_chat_id}!"
                     )
                     # Notify Staff Group
                     if "message" in cb:
@@ -66,7 +66,7 @@ async def handle_telegram_update(
                         chat_id = cb["message"]["chat"]["id"]
                         await telegram_service.send_message(
                             chat_id=chat_id,
-                            text=f"✅ **Ticket Claimed!** Agent **{staff_name}** has claimed ticket `{target_chat_id}`."
+                            text=f"**Ticket Claimed!** Agent **{staff_name}** has claimed ticket `{target_chat_id}`."
                         )
             except Exception as ex:
                 logger.error(f"Error handling callback claim: {ex}")
@@ -75,8 +75,8 @@ async def handle_telegram_update(
             # 1st click on "Other question" -> Displays full list of commands/questions + "Other question" escalation button
             chat_id = from_user["id"]
             help_text = (
-                "📋 **Frequently Asked Questions & Commands**\n\n"
-                "Please select a question below to get instant answers, or click **❓ Other question** to speak directly with customer support:"
+                "**Frequently Asked Questions & Commands**\n\n"
+                "Please select a question below to get instant answers, or click **Other question** to speak directly with customer support:"
             )
             await telegram_service.answer_callback_query(cb_id, text="Opening commands list...")
             await telegram_service.send_message(
@@ -111,7 +111,7 @@ async def handle_telegram_update(
         elif cb_data.startswith("rate_"):
             rating = cb_data.split("_")[1]
             await telegram_service.answer_callback_query(
-                cb_id, text=f"Thank you for rating us {rating}/5 stars! ⭐", show_alert=True
+                cb_id, text=f"Thank you for rating us {rating}/5 stars!", show_alert=True
             )
 
         return {"status": "ok"}
@@ -152,8 +152,8 @@ async def handle_telegram_update(
     normalized_text = text.strip().lower()
     if not is_human_active and normalized_text in ["/command", "/commands", "/help", "/start"]:
         help_text = (
-            "📋 **Frequently Asked Questions & Commands**\n\n"
-            "Please select a question below to get instant answers, or click **❓ Other question** to speak directly with customer support:"
+            "**Frequently Asked Questions & Commands**\n\n"
+            "Please select a question below to get instant answers, or click **Other question** to speak directly with customer support:"
         )
         await telegram_service.send_message(
             chat_id=chat_id,
