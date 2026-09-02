@@ -52,6 +52,18 @@ async def init_db() -> None:
             except Exception:
                 pass  # Column already exists or dialect does not support IF NOT EXISTS
 
+    # 3. Ensure telegram_id and sender_id are BIGINT to support 64-bit Telegram IDs
+    async with engine.begin() as conn:
+        from sqlalchemy import text
+        try:
+            await conn.execute(text("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT"))
+        except Exception:
+            pass
+        try:
+            await conn.execute(text("ALTER TABLE messages ALTER COLUMN sender_id TYPE BIGINT"))
+        except Exception:
+            pass
+
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for providing AsyncSession to endpoints & repositories."""

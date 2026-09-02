@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column, BigInteger
 from app.core.utils import utc_now
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ class Message(SQLModel, table=True):
         foreign_key="conversations.id", index=True, nullable=False
     )
     sender_role: SenderRole = Field(nullable=False)
-    sender_id: int = Field(nullable=False)  # telegram_id or agent_id
+    sender_id: int = Field(sa_column=Column(BigInteger, nullable=False))  # telegram_id or agent_id
     content: str = Field(nullable=False)
     created_at: datetime = Field(
         default_factory=utc_now,
