@@ -66,11 +66,21 @@ FAQ_COMMANDS = {
 
 
 def get_faq_inline_keyboard() -> dict:
-    """Build Telegram inline keyboard for FAQ commands + 'Other question' support escalation button."""
+    """Build Telegram inline keyboard for full FAQ command list + 'Other question' live support escalation button."""
     keyboard = []
     for key, item in FAQ_COMMANDS.items():
         keyboard.append([{"text": item["title"], "callback_data": key}])
     
-    # 'Other question' button triggers customer support escalation
+    # 'Other question' button inside the command list triggers live customer support escalation
     keyboard.append([{"text": "❓ Other question", "callback_data": "request_support"}])
     return {"inline_keyboard": keyboard}
+
+
+def get_single_other_question_keyboard() -> dict:
+    """Build single '❓ Other question' inline button that opens the full command list without cluttering the chat."""
+    return {
+        "inline_keyboard": [
+            [{"text": "❓ Other question", "callback_data": "show_commands"}]
+        ]
+    }
+

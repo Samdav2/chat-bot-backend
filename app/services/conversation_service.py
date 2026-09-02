@@ -13,7 +13,7 @@ from app.services.state_manager import SessionStateManager
 from app.services.telegram_service import TelegramService
 from app.services.websocket_manager import ws_manager
 from app.services.ai_service import AIService
-from app.core.constants import get_faq_inline_keyboard
+from app.core.constants import get_faq_inline_keyboard, get_single_other_question_keyboard
 
 logger = logging.getLogger("service.conversation")
 
@@ -335,8 +335,8 @@ class ConversationService:
                 content=reply_text,
             )
 
-            # Dispatch to Telegram with FAQ & support keyboard
-            keyboard = get_faq_inline_keyboard()
+            # Dispatch to Telegram with single 'Other question' button (opens command list)
+            keyboard = get_single_other_question_keyboard()
             await self.telegram_service.send_message(
                 chat_id=telegram_id, text=reply_text, reply_markup=keyboard
             )

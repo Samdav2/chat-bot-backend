@@ -9,7 +9,7 @@ from app.services.state_manager import SessionStateManager
 
 from app.models.conversation import ConversationStatus
 
-from app.core.constants import FAQ_COMMANDS, get_faq_inline_keyboard
+from app.core.constants import FAQ_COMMANDS, get_faq_inline_keyboard, get_single_other_question_keyboard
 
 router = APIRouter()
 logger = logging.getLogger("api.telegram_webhook")
@@ -71,8 +71,22 @@ async def handle_telegram_update(
             except Exception as ex:
                 logger.error(f"Error handling callback claim: {ex}")
 
+        elif cb_data == "show_commands":
+            # 1st click on "Other question" -> Displays full list of commands/questions + "Other question" escalation button
+            chat_id = from_user["id"]
+            help_text = (
+                "📋 **Frequently Asked Questions & Commands**\n\n"
+                "Please select a question below to get instant answers, or click **❓ Other question** to speak directly with customer support:"
+            )
+            await telegram_service.answer_callback_query(cb_id, text="Opening commands list...")
+            await telegram_service.send_message(
+                chat_id=chat_id,
+                text=help_text,
+                reply_markup=get_faq_inline_keyboard(),
+            )
+
         elif cb_data == "request_support":
-            # Customer pressed inline "Other question" button -> Triggers human agent support escalation
+            # 2nd click on "Other question" inside the command list -> Triggers live human agent support escalation
             chat_id = from_user["id"]
             await service.escalate_to_human(
                 telegram_id=chat_id,
@@ -80,10 +94,10 @@ async def handle_telegram_update(
                 first_name=from_user.get("first_name"),
                 text_trigger="Inline Button Escalation",
             )
-            await telegram_service.answer_callback_query(cb_id, text="Connecting you to support...")
+            await telegram_service.answer_callback_query(cb_id, text="Connecting you to live support...")
 
         elif cb_data in FAQ_COMMANDS:
-            # Customer clicked an FAQ command button
+            # Customer clicked an FAQ command button -> Answers question & keeps chat clean with single 'Other question' button
             chat_id = from_user["id"]
             faq_item = FAQ_COMMANDS[cb_data]
             answer_text = f"**{faq_item['title']}**\n\n{faq_item['response']}"
@@ -91,7 +105,7 @@ async def handle_telegram_update(
             await telegram_service.send_message(
                 chat_id=chat_id,
                 text=answer_text,
-                reply_markup=get_faq_inline_keyboard(),
+                reply_markup=get_single_other_question_keyboard(),
             )
 
         elif cb_data.startswith("rate_"):
