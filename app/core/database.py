@@ -39,15 +39,18 @@ async def init_db() -> None:
     # Ensure all models are imported so SQLModel.metadata is populated
     import app.models  # noqa: F401
 
+    # 1. Create all missing tables in their own transaction
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        # Ensure new columns exist on agents table if migrating existing DB
+
+    # 2. Ensure new columns exist on agents table for legacy DB migrations
+    async with engine.begin() as conn:
         from sqlalchemy import text
         for col_name in ["telegram_chat_id", "telegram_username"]:
             try:
-                await conn.execute(text(f"ALTER TABLE agents ADD COLUMN {col_name} VARCHAR(255)"))
+                await conn.execute(text(f"ALTER TABLE agents ADD COLUMN IF NOT EXISTS {col_name} VARCHAR(255)"))
             except Exception:
-                pass  # Column already exists
+                pass  # Column already exists or dialect does not support IF NOT EXISTS
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
