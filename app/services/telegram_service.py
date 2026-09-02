@@ -128,3 +128,39 @@ class TelegramService:
 
         return results
 
+    async def set_webhook(self, webhook_url: str, secret_token: Optional[str] = None) -> Dict[str, Any]:
+        """Register or update Telegram Bot Webhook URL with Telegram API."""
+        if self.bot_token == "mock_bot_token":
+            logger.info(f"[MOCK WEBHOOK SET] URL: {webhook_url}")
+            return {"ok": True, "result": True, "description": "Mock webhook updated"}
+
+        url = f"{self.api_url}/setWebhook"
+        secret = secret_token or settings.TELEGRAM_WEBHOOK_SECRET
+        payload = {
+            "url": webhook_url,
+            "secret_token": secret,
+            "allowed_updates": ["message", "callback_query"]
+        }
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                response = await client.post(url, json=payload)
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error setting Telegram webhook URL to {webhook_url}: {e}")
+                return {"ok": False, "error": str(e)}
+
+    async def get_webhook_info(self) -> Dict[str, Any]:
+        """Fetch current Telegram Bot Webhook status from Telegram API."""
+        if self.bot_token == "mock_bot_token":
+            return {"ok": True, "result": {"url": "mock_url"}}
+
+        url = f"{self.api_url}/getWebhookInfo"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                response = await client.get(url)
+                return response.json()
+            except Exception as e:
+                logger.error(f"Error fetching Telegram webhook info: {e}")
+                return {"ok": False, "error": str(e)}
+
+

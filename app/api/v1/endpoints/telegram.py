@@ -131,3 +131,18 @@ async def handle_telegram_update(
 
     return {"status": "ok"}
 
+
+@router.post("/set-webhook")
+async def set_telegram_webhook(webhook_url: str) -> Dict[str, Any]:
+    """Register or update Telegram webhook URL with Telegram API."""
+    telegram_service = TelegramService()
+    return await telegram_service.set_webhook(webhook_url)
+
+
+@router.get("/webhook-info")
+async def get_telegram_webhook_info() -> Dict[str, Any]:
+    """Check current webhook registration status from Telegram API."""
+    telegram_service = TelegramService()
+    return await telegram_service.get_webhook_info()
+
+
