@@ -114,60 +114,92 @@ class AIService:
         return None
 
     def _generate_fallback(self, prompt: str) -> str:
-        """Master offline response engine for OTP & SMS verification queries when external AI APIs are unavailable."""
+        """Master offline response engine for FAQ queries when external AI APIs are unavailable."""
         lower_prompt = prompt.lower().strip()
 
-        # Greetings
-        if any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings", "start"]):
+        # 1. How to Deposit
+        if any(phrase in lower_prompt for phrase in ["how to deposit", "deposit", "top up"]):
             return (
-                "🤖 Hello! Welcome to our SMS & OTP Verification Service. "
-                "How can I assist you today? You can ask about buying numbers, OTP delays, pricing, or refunds."
+                "Click the “Top up” button and select to pay with bank transfer or cryptocurrency, "
+                "after that enter the amount you want to deposit and click the “Proceed to payment” button "
+                "an account details we be generated for you to make payment to"
             )
 
-        # OTP Delivery / Delayed Code / Code not coming
-        elif any(phrase in lower_prompt for phrase in ["otp", "code", "sms", "not receive", "delay", "waiting", "didn't get", "haven't got", "where is"]):
+        # 2. How to cancel order
+        elif any(phrase in lower_prompt for phrase in ["how to cancel order", "cancel order", "cancel your order"]):
             return (
-                "🤖 **OTP Delivery Info:** SMS codes usually arrive within 1-3 minutes. "
-                "If your code has not arrived after 3 minutes, please click **Cancel** on your dashboard number order. "
-                "Your balance will be instantly refunded 100%, and you can try purchasing another number or selecting a different country/server."
+                "To cancel an order, watch this 1-minute video tutorial on how to cancel your order\n"
+                "https://youtube.com/shorts/2ix4ZsYsl2A?si=YvcKaAqj_kD_jJrc"
             )
 
-        # Refund / Balance / Billing / Charged
-        elif any(word in lower_prompt for word in ["refund", "balance", "money", "charged", "credit", "cost", "free"]):
+        # 3. Why am not receiving code / OTP delivery
+        elif any(phrase in lower_prompt for phrase in ["why am not receiving code", "not receiving code", "didn't receive code", "receiving code", "where is my otp", "otp code"]):
             return (
-                "🤖 **Billing & Refund Policy:** You are **only charged if an SMS code is successfully received**! "
-                "If you cancel an unused number or if the timer expires without receiving an OTP, your money is automatically credited back to your account balance immediately."
+                "Make sure you on VPN and set location to the country number you want to buy. "
+                "You also have options to buy from different ID if a particular ID is not sending code or out of stock. "
+                "(SMS codes usually arrive within 1-3 minutes. If code does not arrive, click Cancel for an instant refund)."
             )
 
-        # Buying / Purchasing numbers / How to use
-        elif any(word in lower_prompt for word in ["buy", "purchase", "number", "how to", "get number", "service", "country"]):
+        # 4. Is it compulsory to use VPN or Proxy
+        elif any(phrase in lower_prompt for phrase in ["compulsory to use vpn", "vpn or proxy", "use vpn"]):
+            return (
+                "Yes, we recommend using a VPN or proxy when opening a foreign account to help avoid code delays and immediate suspension."
+            )
+
+        # 5. WhatsApp Business
+        elif any(phrase in lower_prompt for phrase in ["whatsapp business", "wa business"]):
+            return (
+                "we recommend you use the normal Whatsapp not Whatsapp business if you want to open a whatsapp account to avoid immediate suspesion"
+            )
+
+        # 6. Refund to bank account
+        elif any(phrase in lower_prompt for phrase in ["refund to my bank", "bank account", "refund to bank"]):
+            return (
+                "As outlined in our Terms of Service, refund to bank account is non-refundable which you agree to when signing up, "
+                "For more details, please refer to our Terms of Service here —> https://falconotp.com/tos"
+            )
+
+        # 7. Payment rejected
+        elif any(phrase in lower_prompt for phrase in ["payment been rejected", "payment rejected"]):
+            return (
+                "Make sure you transfer the exact amount you see on the payment page, Do not send more or less than the specified amount."
+            )
+
+        # 8. Refund if number doesn't receive code
+        elif any(phrase in lower_prompt for phrase in ["doesn't receive code", "number i bought", "refund policy"]):
+            return (
+                "Yes! Just Cancel the number, the money we be automatically refund to your balance. "
+                "(You are only charged if an SMS code is successfully received)."
+            )
+
+        # 9. Are refunds available
+        elif any(phrase in lower_prompt for phrase in ["are refunds available", "refunds available"]):
+            return (
+                "Absolutely! We have a simple rule: If you buy a number but the SMS never arrives, "
+                "the system automatically refunds the money to your balance. You only pay for actual results."
+            )
+
+        # Buying / Purchasing numbers
+        elif any(word in lower_prompt for word in ["buy", "purchase", "how to buy"]):
             return (
                 "🤖 **How to Buy a Number:**\n"
                 "1. Go to the main dashboard.\n"
-                "2. Select your target service (e.g. WhatsApp, Telegram, Google, Tinder, etc.) and country.\n"
-                "3. Click **Buy Number**.\n"
-                "4. Copy the virtual number into your app/website and request the OTP!"
+                "2. Select your target service (e.g. WhatsApp, Telegram, Google, etc.) and country.\n"
+                "3. Click **Buy Number**."
             )
 
-        # Banned or Invalid Number
-        elif any(word in lower_prompt for word in ["banned", "invalid", "blocked", "used", "error"]):
-            return (
-                "🤖 **Invalid / Banned Number:** If the service indicates the number is already registered or banned, "
-                "simply click **Cancel** on your order tab immediately to get a full refund, then purchase a fresh number."
-            )
-
-        # Pricing & Rates
-        elif any(word in lower_prompt for word in ["price", "pricing", "rate", "fee"]):
-            return (
-                "🤖 **Pricing Details:** Rates vary depending on the chosen service and country. "
-                "You can view live prices per SMS directly on the dashboard service selection menu."
-            )
-
-        # Hours / Support
+        # Hours / Live Support
         elif any(word in lower_prompt for word in ["hours", "support", "human", "agent", "person", "real"]):
             return (
                 "🤖 Our live support team is available 24/7! "
-                "To speak directly with a support agent, click the **'Other question'** button or type `/support`."
+                "To speak directly with a support agent, click **❓ Other question** or type `/support`."
+            )
+
+        # Greetings
+        elif any(word in lower_prompt for word in ["hello", "hi", "hey", "greetings", "start"]):
+            return (
+                "🤖 Hello! Welcome to our SMS & OTP Verification Service. "
+                "Type /command to view our list of FAQ commands, or click 'Other question' to speak directly with customer support."
             )
 
         # Gratitude
@@ -178,6 +210,5 @@ class AIService:
         else:
             return (
                 f"🤖 Thank you for your inquiry: '{prompt}'. "
-                "As an SMS Support Assistant, I am here to help with your OTP orders, numbers, and balance. "
-                "If you need dedicated live agent assistance, please click **'Other question'** or type `/support`."
+                "Type /command to see all FAQ options, or click **❓ Other question** to speak directly with customer support."
             )

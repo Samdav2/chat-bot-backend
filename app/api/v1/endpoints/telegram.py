@@ -9,6 +9,8 @@ from app.services.state_manager import SessionStateManager
 
 from app.models.conversation import ConversationStatus
 
+from app.core.constants import FAQ_COMMANDS, get_faq_inline_keyboard
+
 router = APIRouter()
 logger = logging.getLogger("api.telegram_webhook")
 
@@ -33,7 +35,7 @@ async def handle_telegram_update(
     telegram_service = TelegramService()
     state_manager = SessionStateManager()
 
-    # 1. Handle Inline Callback Queries (e.g., Staff Group ticket claim, customer rating)
+    # 1. Handle Inline Callback Queries (e.g., FAQ commands, Staff Group ticket claim, customer rating)
     if "callback_query" in update:
         cb = update["callback_query"]
         cb_id = cb["id"]
@@ -70,7 +72,7 @@ async def handle_telegram_update(
                 logger.error(f"Error handling callback claim: {ex}")
 
         elif cb_data == "request_support":
-            # Customer pressed inline "Speak to Support" button
+            # Customer pressed inline "Other question" button -> Triggers human agent support escalation
             chat_id = from_user["id"]
             await service.escalate_to_human(
                 telegram_id=chat_id,
@@ -79,6 +81,18 @@ async def handle_telegram_update(
                 text_trigger="Inline Button Escalation",
             )
             await telegram_service.answer_callback_query(cb_id, text="Connecting you to support...")
+
+        elif cb_data in FAQ_COMMANDS:
+            # Customer clicked an FAQ command button
+            chat_id = from_user["id"]
+            faq_item = FAQ_COMMANDS[cb_data]
+            answer_text = f"**{faq_item['title']}**\n\n{faq_item['response']}"
+            await telegram_service.answer_callback_query(cb_id, text=f"Answer: {faq_item['title']}")
+            await telegram_service.send_message(
+                chat_id=chat_id,
+                text=answer_text,
+                reply_markup=get_faq_inline_keyboard(),
+            )
 
         elif cb_data.startswith("rate_"):
             rating = cb_data.split("_")[1]
@@ -107,8 +121,21 @@ async def handle_telegram_update(
     current_state = await state_manager.get_user_state(chat_id)
     is_human_active = (active_conv and active_conv.status == ConversationStatus.HUMAN_ACTIVE) or current_state == "HUMAN_ACTIVE"
 
-    # Command Trigger check for Escalation (/support, "talk to human", "agent", "human")
+    # Command Trigger check for FAQ menu (/command, /commands, /help, /start)
     normalized_text = text.strip().lower()
+    if not is_human_active and normalized_text in ["/command", "/commands", "/help", "/start"]:
+        help_text = (
+            "📋 **Frequently Asked Questions & Commands**\n\n"
+            "Please select a question below to get instant answers, or click **❓ Other question** to speak directly with customer support:"
+        )
+        await telegram_service.send_message(
+            chat_id=chat_id,
+            text=help_text,
+            reply_markup=get_faq_inline_keyboard(),
+        )
+        return {"status": "ok"}
+
+    # Command Trigger check for Escalation (/support, "talk to human", "agent", "human")
     escalation_triggers = ["/support", "talk to human", "agent", "human", "speak to agent", "help human"]
 
     if not is_human_active and any(trigger in normalized_text for trigger in escalation_triggers):
