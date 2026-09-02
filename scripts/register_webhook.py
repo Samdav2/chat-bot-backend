@@ -1,6 +1,12 @@
 import sys
+import os
+from pathlib import Path
 import asyncio
 import httpx
+
+# Ensure project root directory is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from app.core.config import settings
 
 
