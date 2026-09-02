@@ -100,7 +100,7 @@ async def handle_telegram_update(
             # Customer clicked an FAQ command button -> Answers question & keeps chat clean with single 'Other question' button
             chat_id = from_user["id"]
             faq_item = FAQ_COMMANDS[cb_data]
-            answer_text = f"**{faq_item['title']}**\n\n{faq_item['response']}"
+            answer_text = faq_item["response"]
             await telegram_service.answer_callback_query(cb_id, text=f"Answer: {faq_item['title']}")
             await telegram_service.send_message(
                 chat_id=chat_id,

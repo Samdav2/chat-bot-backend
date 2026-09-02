@@ -412,7 +412,7 @@ class ConversationService:
         # 2. Dispatch to customer Telegram chat window
         if send_to_telegram:
             if media_url:
-                caption = f"**Agent Response:**\n{content}" if content else "**Agent Response**"
+                caption = content if content else None
                 await self.telegram_service.send_photo(
                     chat_id=telegram_id,
                     photo_url_or_path=media_url,
@@ -421,7 +421,7 @@ class ConversationService:
             else:
                 await self.telegram_service.send_message(
                     chat_id=telegram_id,
-                    text=f"**Agent Response:**\n{content}",
+                    text=content,
                 )
 
         # 3. Broadcast to all active WebSocket listeners
