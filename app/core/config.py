@@ -40,7 +40,7 @@ class Settings(BaseSettings):
         "2. Billing Policy: Users are ONLY charged if an OTP code is successfully received. Unused or cancelled numbers are completely free.\n"
         "3. Supported Platforms: WhatsApp, Telegram, Google, OpenAI, Tinder, Twitter/X, Instagram, and more.\n"
         "4. Invalid/Banned Numbers: If a service reports a number as invalid or banned, advise immediate cancellation for a full refund.\n"
-        "5. Support Escalation: Be polite and concise. If the user requests human assistance, inform them they can type /support or click 'Speak to Support Agent'."
+        "5. Support Escalation: Be polite and concise. If the user requests human assistance, inform them they can type /support or click 'Other question'."
     )
 
     @field_validator("CORS_ORIGINS", mode="before")

@@ -337,7 +337,7 @@ class ConversationService:
             # Dispatch to Telegram with support keyboard
             keyboard = {
                 "inline_keyboard": [
-                    [{"text": "👤 Speak to Support Agent", "callback_data": "request_support"}]
+                    [{"text": "❓ Other question", "callback_data": "request_support"}]
                 ]
             }
             await self.telegram_service.send_message(

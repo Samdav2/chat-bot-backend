@@ -167,7 +167,7 @@ class AIService:
         elif any(word in lower_prompt for word in ["hours", "support", "human", "agent", "person", "real"]):
             return (
                 "🤖 Our live support team is available 24/7! "
-                "To speak directly with a support agent, click the **'Speak to Support Agent'** button or type `/support`."
+                "To speak directly with a support agent, click the **'Other question'** button or type `/support`."
             )
 
         # Gratitude
@@ -179,5 +179,5 @@ class AIService:
             return (
                 f"🤖 Thank you for your inquiry: '{prompt}'. "
                 "As an SMS Support Assistant, I am here to help with your OTP orders, numbers, and balance. "
-                "If you need dedicated live agent assistance, please click **'Speak to Support Agent'** or type `/support`."
+                "If you need dedicated live agent assistance, please click **'Other question'** or type `/support`."
             )
