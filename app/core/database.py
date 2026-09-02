@@ -36,6 +36,9 @@ async_session_maker = sessionmaker(
 
 async def init_db() -> None:
     """Initialize database tables asynchronously."""
+    # Ensure all models are imported so SQLModel.metadata is populated
+    import app.models  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
         # Ensure new columns exist on agents table if migrating existing DB
