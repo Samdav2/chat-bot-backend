@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
+from app.core.utils import utc_now
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
@@ -15,7 +16,7 @@ class User(SQLModel, table=True):
     first_name: Optional[str] = Field(default=None, max_length=255)
     last_name: Optional[str] = Field(default=None, max_length=255)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=utc_now,
         nullable=False
     )
 

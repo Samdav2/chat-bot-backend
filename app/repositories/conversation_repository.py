@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
 from typing import Optional, Sequence
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
+from app.core.utils import utc_now
 from app.models.conversation import Conversation, ConversationStatus
 from app.repositories.base import BaseRepository
 
@@ -61,7 +61,7 @@ class ConversationRepository(BaseRepository[Conversation]):
         if conversation:
             conversation.assigned_agent_id = agent_id
             conversation.status = ConversationStatus.HUMAN_ACTIVE
-            conversation.updated_at = datetime.now(timezone.utc)
+            conversation.updated_at = utc_now()
             return await self.update(conversation)
         return None
 
@@ -72,6 +72,6 @@ class ConversationRepository(BaseRepository[Conversation]):
         conversation = await self.get_by_id(conversation_id)
         if conversation:
             conversation.status = status
-            conversation.updated_at = datetime.now(timezone.utc)
+            conversation.updated_at = utc_now()
             return await self.update(conversation)
         return None

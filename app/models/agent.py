@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
+from app.core.utils import utc_now
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
@@ -17,7 +18,7 @@ class Agent(SQLModel, table=True):
     telegram_chat_id: Optional[str] = Field(default=None, nullable=True, max_length=255)
     telegram_username: Optional[str] = Field(default=None, nullable=True, max_length=255)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=utc_now,
         nullable=False
     )
 

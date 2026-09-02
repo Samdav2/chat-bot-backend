@@ -1,7 +1,8 @@
 from enum import Enum
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
+from app.core.utils import utc_now
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
@@ -24,7 +25,7 @@ class Message(SQLModel, table=True):
     sender_id: int = Field(nullable=False)  # telegram_id or agent_id
     content: str = Field(nullable=False)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=utc_now,
         nullable=False
     )
 
