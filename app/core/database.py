@@ -1,3 +1,4 @@
+import re
 from typing import AsyncGenerator
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -5,12 +6,12 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Normalize Database URL for PostgreSQL (Railway / Supabase / Render)
+# Normalize Database URL for PostgreSQL (Railway / Supabase / Render / Docker)
 db_url = settings.DATABASE_URL
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+if db_url.startswith("postgres://") or db_url.startswith("postgresql://"):
+    db_url = re.sub(r"^postgres(ql)?://", "postgresql+asyncpg://", db_url, count=1)
+elif db_url.startswith("postgresql+") and not db_url.startswith("postgresql+asyncpg://"):
+    db_url = re.sub(r"^postgresql\+[a-zA-Z0-9_]+://", "postgresql+asyncpg://", db_url, count=1)
 
 # Connect args check for SQLite vs Postgres
 connect_args = {}
