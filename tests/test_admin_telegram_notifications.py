@@ -128,3 +128,35 @@ async def test_route_user_message_triggers_admin_alert(db_session: AsyncSession)
         assert call_kwargs["customer_name"] == "Alice"
         assert call_kwargs["message_text"] == "Need information regarding services"
         assert "555444333" in call_kwargs["recipient_chat_ids"]
+
+
+@pytest.mark.asyncio
+async def test_escalation_triggers_admin_staff_alert(db_session: AsyncSession):
+    """Test that requesting customer support triggers Telegram escalation notification to admins."""
+    agent_repo = AgentRepository(db_session)
+    admin = Agent(
+        email="escalation_admin@test.com",
+        hashed_password="hash",
+        full_name="Escalation Admin",
+        telegram_chat_id="777666555",
+    )
+    await agent_repo.create(admin)
+
+    conv_service = ConversationService(db_session)
+
+    with patch.object(TelegramService, "send_staff_alert", new_callable=AsyncMock) as mock_staff_alert:
+        mock_staff_alert.return_value = [{"ok": True}]
+
+        await conv_service.escalate_to_human(
+            telegram_id=666555444,
+            first_name="Bob",
+            username="bob_user",
+            text_trigger="I want to speak with human agent",
+        )
+
+        mock_staff_alert.assert_called_once()
+        call_kwargs = mock_staff_alert.call_args.kwargs
+        assert call_kwargs["customer_id"] == 666555444
+        assert call_kwargs["customer_name"] == "Bob"
+        assert call_kwargs["initial_text"] == "I want to speak with human agent"
+        assert "777666555" in call_kwargs["recipient_chat_ids"]

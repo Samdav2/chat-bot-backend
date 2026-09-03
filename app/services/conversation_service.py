@@ -85,10 +85,20 @@ class ConversationService:
         )
         
         display_name = first_name or username or f"User {telegram_id}"
+        try:
+            agents_with_tg = await self.agent_repo.get_agents_with_telegram()
+            admin_chat_ids = [
+                a.telegram_chat_id or a.telegram_username for a in agents_with_tg if (a.telegram_chat_id or a.telegram_username)
+            ]
+        except Exception as ex:
+            logger.error(f"Error fetching admin Telegram accounts for escalation alert: {ex}")
+            admin_chat_ids = []
+
         await self.telegram_service.send_staff_alert(
             customer_id=telegram_id,
             customer_name=display_name,
             initial_text=text_trigger,
+            recipient_chat_ids=admin_chat_ids,
         )
 
         return conversation

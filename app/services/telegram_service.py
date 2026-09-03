@@ -157,10 +157,13 @@ class TelegramService:
                 return False
 
     async def send_staff_alert(
-        self, customer_id: int, customer_name: str, initial_text: str
-    ) -> Optional[Dict[str, Any]]:
-        """Dispatch staff notification alert to the Telegram Staff Group with a [Claim Ticket] inline button."""
-        staff_group_id = settings.STAFF_GROUP_ID
+        self,
+        customer_id: int,
+        customer_name: str,
+        initial_text: str,
+        recipient_chat_ids: Optional[list[int | str]] = None,
+    ) -> list[Optional[Dict[str, Any]]]:
+        """Dispatch staff notification alert to admin Telegram accounts and Staff Group with a [Claim Ticket] inline button."""
         text = (
             f"**New Customer Support Escalation!**\n\n"
             f"**Customer:** {customer_name}\n"
@@ -178,7 +181,22 @@ class TelegramService:
                 ]
             ]
         }
-        return await self.send_message(staff_group_id, text, reply_markup=reply_markup)
+
+        targets = set()
+        if recipient_chat_ids:
+            for cid in recipient_chat_ids:
+                if cid:
+                    targets.add(cid)
+
+        if settings.STAFF_GROUP_ID:
+            targets.add(settings.STAFF_GROUP_ID)
+
+        results = []
+        for chat_id in targets:
+            res = await self.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
+            results.append(res)
+
+        return results
 
     async def send_new_message_alert(
         self,
